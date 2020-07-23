@@ -126,10 +126,26 @@ namespace ResMerger
 
             // create documents
             var documents = new Dictionary<string, Data>();
-          
+
+            // create dictionary for references that cannot be resolved locally.
+            var unresolvedRefs = new HashSet<string>();
+
             // add elements
-            ResourceMerger.PrepareDocuments(ref documents, projectPath, projectName, relativeSourceFilePath);
-       
+            ResourceMerger.PrepareDocuments(ref documents, unresolvedRefs, projectPath, projectName, relativeSourceFilePath);
+
+            // add referenced elements
+            if (unresolvedRefs.Any())
+            {
+                var xnsp = outputDoc.Root.GetDefaultNamespace();
+
+                var mergedDicts = unresolvedRefs
+                    .Select(x => new XElement(xnsp + resDictString, new XAttribute("Source", x)))
+                    .ToArray();
+
+                var elm = new XElement(xnsp + resDictString + ".MergedDictionaries", mergedDicts);
+                outputDoc.Root.Add(elm);
+            }
+
             // add elements (ordered by dependency count)
             foreach (var item in documents.OrderByDescending(item => item.Value.DependencyCount))
             {
@@ -170,12 +186,13 @@ namespace ResMerger
         /// </summary>
         /// <param name="documents">output document collection</param>
         /// <param name="projectPath">project path</param>
+        /// <param name="unresolvedRefs">references that cannot be resolved locally</param>
         /// <param name="projectName">project name</param>
         /// <param name="relativeSourceFilePath">relative source file path</param>
         /// <param name="resDictString">resource dictionary string (node name)</param>
         /// <param name="firstTime">first time, is LookAndFeel?</param>
         /// <param name="parentDependencyCount">dependency count</param>
-        private static void PrepareDocuments(ref Dictionary<string, Data> documents, string projectPath, string projectName, string relativeSourceFilePath, bool firstTime = true, int parentDependencyCount = 0)
+        private static void PrepareDocuments(ref Dictionary<string, Data> documents, ISet<string> unresolvedRefs, string projectPath, string projectName, string relativeSourceFilePath, bool firstTime = true, int parentDependencyCount = 0)
         {
             // load current doc
             var absoluteSourceFilePath = projectPath + relativeSourceFilePath;
@@ -201,7 +218,14 @@ namespace ResMerger
 
             // call PrepareDocuments() for each merged dictionary
             foreach (var dict in doc.Root.Descendants(defaultNameSpace + resDictString))
-                PrepareDocuments(ref documents, projectPath, projectName, dict.Attribute("Source").Value.Replace("/" + projectName + ";component/", string.Empty), false, documents[absoluteSourceFilePath].DependencyCount);
+            {
+                var relPath = dict.Attribute("Source").Value.Replace("/" + projectName + ";component/", string.Empty);
+                if (!File.Exists(projectPath + relPath))
+                    unresolvedRefs.Add(relPath);
+                else
+                    PrepareDocuments(ref documents, unresolvedRefs, projectPath, projectName, relPath, false, documents[absoluteSourceFilePath].DependencyCount);
+
+            }
         }
     }
 }
