@@ -56,8 +56,11 @@ namespace ResMerger
             var count = args.Count();
 
             // if count is not in valid range throw exception
-            if (count < 1 || count > 4)
-                Helpers.ThrowException<Exception>(ResourceMerger.COUNT_EXCEPTION);
+            if (count < 1)
+                throw new InvalidOperationException($"Expect at least one command line argument.");
+                
+            if (count > 4)
+                throw new InvalidOperationException($"Expect less than 4 command line arguments, but got {count}.");
 
             switch (count)
             {

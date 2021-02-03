@@ -60,26 +60,6 @@ namespace ResMerger
     /// </summary>
     public static class ResourceMerger
     {
-        public const string COUNT_EXCEPTION = "Param count must be >= 1 and < 4.";
-        public const int COUNT_EXCEPTION_CODE = 0;
-
-        public const string PROJECT_PATH_EXCEPTION = "Project path does not exist.";
-        public const int PROJECT_PATH_EXCEPTION_CODE = 1;
-
-        public const string FILE_EXCEPTION = "File does not exist: ";
-        public const int FILE_EXCEPTION_CODE = 2;
-
-        public const string SOURCE_EXCEPTION = "Source file does not exist: ";
-        public const int SOURCE_EXCEPTION_CODE = 3;
-
-        public const string SOURCE_TYPE_EXCEPTION = "Wrong file type for source - must be .xaml";
-        public const int SOURCE_TYPE_EXCEPTION_CODE = 4;
-
-        public const string OUTPUT_TYPE_EXCEPTION = "Wrong file type for output - must be .xaml";
-        public const int OUTPUT_TYPE_EXCEPTION_CODE = 5;
-
-        private const string LOG_FILE_NAME = "ResMergerLog.txt";
-
         /// <summary>
         /// save all resources into one big resource dictionary respecting the dependencies to increase performance
         /// </summary>
@@ -92,25 +72,25 @@ namespace ResMerger
         {
             // if project path does not exist throw exception
             if (!Directory.Exists(projectPath))
-                Helpers.ThrowException<Exception>(PROJECT_PATH_EXCEPTION);
+                throw new DirectoryNotFoundException($"Project path `{projectPath}` does not exist.");
 
             // Get default values for optional parameters
             projectName = string.IsNullOrEmpty(projectName) ? Path.GetFileName(Path.GetDirectoryName(projectPath)) : projectName;
 
             // if relativeSourceFilePath is not of type .xaml throw exception
             if (!relativeSourceFilePath.EndsWith(".xaml", StringComparison.InvariantCultureIgnoreCase))
-                Helpers.ThrowException<Exception>(SOURCE_TYPE_EXCEPTION);
+                throw new InvalidOperationException($"The relative source file `{relativeSourceFilePath}` should have a .xaml extension.");
 
             // if relativeOutputFilePath is not of type .xaml throw exception
             if (!relativeOutputFilePath.EndsWith(".xaml", StringComparison.InvariantCultureIgnoreCase))
-                Helpers.ThrowException<Exception>(OUTPUT_TYPE_EXCEPTION);
+                throw new InvalidOperationException($"The relative output file `{relativeOutputFilePath}` should have a .xaml extension.");
 
             // create sourceFilePath
             var sourceFilePath = projectPath + relativeSourceFilePath;
 
             // if source file does not exist throw exception
             if (!File.Exists(sourceFilePath))
-                Helpers.ThrowException<Exception>(SOURCE_EXCEPTION + sourceFilePath);
+                throw new FileNotFoundException($"The source file `{sourceFilePath}` was not found.");
 
             // load source doc
             var sourceDoc = XDocument.Load(sourceFilePath);
@@ -199,7 +179,7 @@ namespace ResMerger
 
             // if file does not exist throw exception
             if (!File.Exists(absoluteSourceFilePath))
-                Helpers.ThrowException<Exception>(FILE_EXCEPTION + absoluteSourceFilePath);
+                new FileNotFoundException($"The source file `{absoluteSourceFilePath}` was not found.");
 
             // load the doc
             var doc = XDocument.Load(absoluteSourceFilePath);
